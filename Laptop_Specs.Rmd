@@ -1,0 +1,147 @@
+---
+title: "laptop_visualizations"
+author: "Arthur Jordan"
+date: '2022-04-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(GGally)
+library(ggthemes)
+library(knitr)
+library(RColorBrewer)
+library(tidytext)
+library(tidyverse)
+opts_chunk$set(echo = TRUE)
+```
+
+## Laptop Specs
+# Inspecting laptop data
+
+The data is based on the 'Laptop Specs and latest price' from Kaggle: https://www.kaggle.com/datasets/kuchhbhi/latest-laptop-price-list,
+which was originally scraped from flipkart.com using an automated chrome web extension tool called Instant Data Scrapper. When we glimpse the data, we discover the following:
+
+23 total columns: 
+
+brand, model, processor_brand, processor_name, processor_gnrtn, ram_gb, ram_type, ssd, hdd, os, os_bit, graphics_card_gb, 
+
+weight, display_size, warranty, Touchscreen, msoffice, latest_price, old_price, discount, star_rating, ratings, reviews
+
+
+Column Types:
+
+chr - brand, model, processor_brand, processor_name, processor_gnrtn, ram_gb, ram_type, ssd, hdd, os, os_bit, weigth, display_size, Touchscreen, msoffice
+
+dbl - graphics_card_gb, warranty, latest_price, old_price, discount, star_rating, ratings, reviews
+
+
+
+```{r}
+laptop_data <- read_csv("data/Cleaned_Laptop_data.csv")
+glimpse(laptop_data)
+```
+
+# Number of observations per brand 
+
+```{r}
+laptop_data %>%
+  count(processor_brand, sort = TRUE) %>%
+  kable(caption = "Number of observations per processor_brand")
+```
+
+# Barchart of total number of laptops per laptop brand
+
+```{r}
+
+laptop_data %>%
+  group_by(brand) %>%
+  summarize(count = n()) %>%
+  mutate(brand = fct_reorder(brand, count)) %>%
+  ggplot(aes(y = brand,
+             x = count)) +
+  geom_col() +
+  scale_fill_colorblind(name = "Processor Brand") +
+  labs(title = "Distribution of Laptop Brands in March 2022",
+       x = "Total Number of laptops",
+       y = "Laptop Brand") +
+  theme()
+  
+  
+laptop_data %>%
+  group_by(brand, processor_brand) %>%
+  summarize(count = n()) %>%
+  mutate(brand = fct_reorder(brand, count)) %>%
+  ggplot(aes(y = brand,
+             x = count,
+             fill = processor_brand)) +
+  geom_col() +
+  scale_fill_colorblind(name = "Processor Brand") +
+  labs(title = "Total Number of Laptops per Laptop Brand in March 2022",
+       x = "Total Number of laptops",
+       y = "Laptop Brand") +
+  theme()
+```
+
+```{r}
+colored_laptop_data <- laptop_data %>%
+  group_by(brand, ram_type) %>%
+  ggplot(aes(y = brand,
+             fill = ram_type)) +
+  geom_bar(position = "fill") +
+  theme_minimal()
+
+colored_laptop_data + scale_fill_brewer(palette = "Spectral")
+  
+```
+
+
+```{r}
+laptop_data %>%
+  ggplot(aes(x = star_rating,
+             fill = processor_brand)) +
+  geom_density(alpha = .5) +
+  facet_wrap(~ram_type)
+  
+```
+
+
+
+# Stacked bars of process_brand
+```{r}
+ laptop_data %>%
+  ggplot(aes(y = processor_brand,
+            fill = processor_name)) +
+  geom_bar(position = "fill") +
+  scale_fill_colorblind() +
+  labs(y = "Processor Brand") +
+  scale_fill_discrete(name = "Processor Name")
+```
+
+# Visualizing distribution of categorical variable - brand
+```{r}
+laptop_data %>%
+  group_by(brand, model) %>%
+  ggplot(aes(y = brand,
+             fill = processor_brand)) +
+  geom_bar() +
+  scale_fill_colorblind()
+```
+
+
+```{r}
+
+laptop_data %>%
+  group_by(processor_name, latest_price) %>%
+  summarize(latest_price = latest_price / 100) %>%
+  ggplot(aes(x = latest_price,
+             y = processor_name)) +
+  geom_col()
+```
+
+
+
+
+
+
+

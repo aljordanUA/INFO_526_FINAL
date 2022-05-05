@@ -1,5 +1,5 @@
 ---
-title: "laptop_visualizations"
+title: "Visualizations of Laptop Specs in March 2022"
 author: "Arthur Jordan"
 date: '2022-04-06'
 output: html_document
@@ -11,9 +11,10 @@ library(GGally)
 library(ggthemes)
 library(knitr)
 library(RColorBrewer)
+library(scales)
 library(tidytext)
 library(tidyverse)
-opts_chunk$set(echo = TRUE)
+opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
 ## Laptop Specs
@@ -46,11 +47,11 @@ glimpse(laptop_data)
 
 ```{r}
 laptop_data %>%
-  count(processor_brand, sort = TRUE) %>%
-  kable(caption = "Number of observations per processor_brand")
+  count(processor_name, sort = TRUE) %>%
+  kable(caption = "Number of Processors per Processor Brand")
 ```
 
-# Barchart of total number of laptops per laptop brand
+# Barcharts that visualize various laptop metrics
 
 ```{r}
 
@@ -69,74 +70,86 @@ laptop_data %>%
   
   
 laptop_data %>%
-  group_by(brand, processor_brand) %>%
+  group_by(processor_brand) %>%
   summarize(count = n()) %>%
-  mutate(brand = fct_reorder(brand, count)) %>%
-  ggplot(aes(y = brand,
+  mutate(processor_brand = fct_reorder(processor_brand, count)) %>%
+  ggplot(aes(y = processor_brand,
              x = count,
              fill = processor_brand)) +
   geom_col() +
+  scale_x_continuous() +
   scale_fill_colorblind(name = "Processor Brand") +
-  labs(title = "Total Number of Laptops per Laptop Brand in March 2022",
-       x = "Total Number of laptops",
-       y = "Laptop Brand") +
+  labs(title = "Distribution of Processor Brands in March 2022",
+       x = "Total Number of processors",
+       y = "Processor Brand") +
   theme()
-```
 
-```{r}
 colored_laptop_data <- laptop_data %>%
-  group_by(brand, ram_type) %>%
-  ggplot(aes(y = brand,
-             fill = ram_type)) +
-  geom_bar(position = "fill") +
-  theme_minimal()
+  group_by(brand) %>%
+  mutate(new_price = latest_price / 1000) %>%
+  mutate(brand = fct_reorder(brand, new_price, .desc = FALSE)) %>%
+  ggplot(aes(x = new_price,
+             y = brand,
+             fill = brand)) +
+  geom_col(position = "identity") +
+  theme_minimal() +
+  scale_x_continuous(labels=scales::dollar_format()) +
+  labs(title = "Laptop Prices across Laptop Brands",
+       x = "Laptop Price",
+       y = "Laptop Brand",
+       caption = "The data is based on the 'Laptop Specs and latest price' from Kaggle: https://www.kaggle.com/datasets/kuchhbhi/latest-laptop-price-list")
 
-colored_laptop_data + scale_fill_brewer(palette = "Spectral")
-  
+colored_laptop_data
+
+
 ```
 
-
+# Density Plots that visualize various laptop metrics
 ```{r}
-laptop_data %>%
+# Density plot 1: Star Rating Density among Processor Brands by Operating System
+colored_laptop_data <- laptop_data %>%
+  mutate(processor_brand = fct_reorder(processor_brand, star_rating)) %>%
   ggplot(aes(x = star_rating,
              fill = processor_brand)) +
   geom_density(alpha = .5) +
-  facet_wrap(~ram_type)
-  
-```
-
-
-
-# Stacked bars of process_brand
-```{r}
- laptop_data %>%
-  ggplot(aes(y = processor_brand,
-            fill = processor_name)) +
-  geom_bar(position = "fill") +
-  scale_fill_colorblind() +
-  labs(y = "Processor Brand") +
-  scale_fill_discrete(name = "Processor Name")
-```
-
-# Visualizing distribution of categorical variable - brand
-```{r}
-laptop_data %>%
-  group_by(brand, model) %>%
-  ggplot(aes(y = brand,
-             fill = processor_brand)) +
-  geom_bar() +
+  facet_wrap(~os) +
   scale_fill_colorblind()
+
+colored_laptop_data
+
+# Density plot 2: Star Rating Density among Ram Types by Operating System
+colored_laptop_data <- laptop_data %>%
+  mutate(ram_type = fct_reorder(ram_type, star_rating)) %>%
+  ggplot(aes(x = star_rating,
+             fill = ram_type)) +
+  geom_density(alpha = .5) +
+  facet_wrap(~ram_gb) +
+  scale_fill_colorblind() +
+  labs(title = "Star Rating Distribution across RAM Types",
+       subtitle = "  grouped by RAM size",
+       x = "Star_Rating",
+       caption = "The data is based on the 'Laptop Specs and latest price' from Kaggle: https://www.kaggle.com/datasets/kuchhbhi/latest-laptop-price-list")
+
+colored_laptop_data
 ```
 
 
-```{r}
 
+
+```{r}
 laptop_data %>%
-  group_by(processor_name, latest_price) %>%
-  summarize(latest_price = latest_price / 100) %>%
-  ggplot(aes(x = latest_price,
-             y = processor_name)) +
-  geom_col()
+  mutate(new_price = latest_price / 1000) %>%
+  ggplot(aes(x = processor_brand,
+             y = new_price,
+             fill = fct_reorder(processor_brand, new_price, .desc = TRUE))) +
+  geom_boxplot() +
+  scale_y_continuous(name = "Laptop Price ($)", labels = scales::label_dollar()) +
+  scale_fill_colorblind() +
+  guides(fill=guide_legend(title="Processor Brand")) +
+  labs(title = "Distribution of Laptop Prices across Processor Brands",
+       x = "Processor Brand",
+       caption = "The data is based on the 'Laptop Specs and latest price' from Kaggle: https://www.kaggle.com/datasets/kuchhbhi/latest-laptop-price-list")
+  
 ```
 
 
